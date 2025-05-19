@@ -1,0 +1,83 @@
+class AddNoteStates(StatesGroup):
+    waiting_for_text = State()
+    waiting_for_hour = State()
+    waiting_for_minute = State()
+    waiting_for_date = State()
+
+def generate_calendar(year=None, month=None):
+    now = datetime.now()
+    if year is None:
+        year = now.year
+    if month is None:
+        month = now.month
+    
+    kb = InlineKeyboardBuilder()
+    
+    # Заголовок с навигацией
+    kb.row(
+        InlineKeyboardButton(text="◀", callback_data=f"prev_month_{year}_{month}"),
+        InlineKeyboardButton(text=f"{calendar.month_name[month]} {year}", callback_data="ignore"),
+        InlineKeyboardButton(text="▶", callback_data=f"next_month_{year}_{month}")
+    )
+    
+    # Дни недели
+    week_days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    kb.row(*[InlineKeyboardButton(text=day, callback_data="ignore") for day in week_days])
+    
+    # Дни месяца
+    month_days = calendar.monthcalendar(year, month)
+    today = now.date()
+    
+    for week in month_days:
+        row = []
+        for day in week:
+            if day == 0:
+                row.append(InlineKeyboardButton(text=" ", callback_data="ignore"))
+            else:
+                day_date = date(year, month, day)
+                if day_date < today:
+                    row.append(InlineKeyboardButton(text="✖", callback_data="ignore"))
+                else:
+                    row.append(InlineKeyboardButton(
+                        text=str(day),
+                        callback_data=f"select_day_{year}_{month}_{day}"
+                    ))
+        kb.row(*row)
+    
+    # Кнопки быстрого выбора
+    kb.row(
+        InlineKeyboardButton(text="Сегодня", callback_data=f"today_{year}_{month}"),
+        InlineKeyboardButton(text="Завтра", callback_data=f"tomorrow_{year}_{month}")
+    )
+    
+    return kb.as_markup()
+
+def generate_hours_keyboard():
+    kb = InlineKeyboardBuilder()
+    
+    # Часы (0-23)
+    for hour in range(0, 24, 6):
+        row = []
+        for h in range(hour, hour + 6):
+            row.append(InlineKeyboardButton(
+                text=f"{h:02d}",
+                callback_data=f"select_hour_{h}"
+            ))
+        kb.row(*row)
+    
+    return kb.as_markup()
+
+def generate_minutes_keyboard():
+    kb = InlineKeyboardBuilder()
+    
+    # Минуты (с шагом 5 минут)
+    for minute in range(0, 60, 15):
+        row = []
+        for m in range(minute, minute + 15, 5):
+            row.append(InlineKeyboardButton(
+                text=f"{m:02d}",
+                callback_data=f"select_minute_{m}"
+            ))
+        kb.row(*row)
+    
+    return kb.as_markup()
